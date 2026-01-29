@@ -29,5 +29,6 @@ class Player {
             draws: 0,
             losses: 0
         };
+        this.waitingCount = 0;
     }
 }

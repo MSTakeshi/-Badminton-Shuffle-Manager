@@ -42,6 +42,18 @@ const waitingListEl = document.getElementById('waiting-list');
 const elParticipatingCount = document.getElementById('participating-count');
 const elWaitingCount = document.getElementById('waiting-count');
 
+// Timer Elements
+const elTimerMinutes = document.getElementById('timer-minutes');
+const elTimerSeconds = document.getElementById('timer-seconds');
+const btnTimerToggle = document.getElementById('btn-timer-toggle');
+const btnTimerReset = document.getElementById('btn-timer-reset');
+const inputTimerDuration = document.getElementById('timer-duration');
+
+// Timer State
+let timerInterval = null;
+let timerTimeLeft = 15 * 60; // seconds
+let isTimerRunning = false;
+
 // Initialization
 function init() {
     renderClubList();
@@ -191,7 +203,7 @@ function renderPlayerList() {
             <div class="col-check">
                 <input type="checkbox" ${player.isSelected ? 'checked' : ''} data-id="${player.id}">
             </div>
-            <div class="col-name">${escapeHtml(player.name)}</div>
+            <div class="col-name">${escapeHtml(player.name)}${player.waitingCount > 0 ? ` (${player.waitingCount})` : ''}</div>
             <div class="col-level">
                 <span class="player-level-badge">Lv.${player.level}</span>
             </div>
@@ -285,11 +297,18 @@ function shuffleMatches() {
     // Get participating players
     let availablePlayers = club.players.filter(p => p.isSelected);
 
-    // Shuffle players (Fisher-Yates)
+    // 1. Shuffle players randomly first (to ensure random selection among ties)
     for (let i = availablePlayers.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [availablePlayers[i], availablePlayers[j]] = [availablePlayers[j], availablePlayers[i]];
     }
+
+    // 2. Sort by waitingCount (Descending)
+    // Players with MORE waiting counts should play (be at the start of array)
+    // Players with FEWER waiting counts should wait (be at the end of array)
+    availablePlayers.sort((a, b) => {
+        return (b.waitingCount || 0) - (a.waitingCount || 0);
+    });
 
     // Assign to courts
     const matches = [];
@@ -316,6 +335,14 @@ function shuffleMatches() {
 
     // Remaining players go to waiting list
     waiting.push(...availablePlayers);
+
+    // Increment waiting count for waiting players
+    waiting.forEach(p => {
+        p.waitingCount = (p.waitingCount || 0) + 1;
+    });
+
+    // Save changes
+    store.updateClub(club);
 
     renderCourts(matches, mode);
     renderWaitingList(waiting);
@@ -371,16 +398,16 @@ function renderCourts(matches, mode) {
 
         if (mode === 'doubles') {
             teamAHtml = `
-                <div class="team-name">${escapeHtml(match.players[0].name)}</div>
-                <div class="team-name">${escapeHtml(match.players[1].name)}</div>
+                <div class="team-name">${escapeHtml(match.players[0].name)}${match.players[0].waitingCount > 0 ? ` (${match.players[0].waitingCount})` : ''}</div>
+                <div class="team-name">${escapeHtml(match.players[1].name)}${match.players[1].waitingCount > 0 ? ` (${match.players[1].waitingCount})` : ''}</div>
             `;
             teamBHtml = `
-                <div class="team-name">${escapeHtml(match.players[2].name)}</div>
-                <div class="team-name">${escapeHtml(match.players[3].name)}</div>
+                <div class="team-name">${escapeHtml(match.players[2].name)}${match.players[2].waitingCount > 0 ? ` (${match.players[2].waitingCount})` : ''}</div>
+                <div class="team-name">${escapeHtml(match.players[3].name)}${match.players[3].waitingCount > 0 ? ` (${match.players[3].waitingCount})` : ''}</div>
             `;
         } else {
-            teamAHtml = `<div class="team-name">${escapeHtml(match.players[0].name)}</div>`;
-            teamBHtml = `<div class="team-name">${escapeHtml(match.players[1].name)}</div>`;
+            teamAHtml = `<div class="team-name">${escapeHtml(match.players[0].name)}${match.players[0].waitingCount > 0 ? ` (${match.players[0].waitingCount})` : ''}</div>`;
+            teamBHtml = `<div class="team-name">${escapeHtml(match.players[1].name)}${match.players[1].waitingCount > 0 ? ` (${match.players[1].waitingCount})` : ''}</div>`;
         }
 
         div.innerHTML = `
@@ -409,12 +436,95 @@ function renderWaitingList(players) {
         players.forEach(p => {
             const span = document.createElement('span');
             span.className = 'waiting-player';
-            span.textContent = p.name;
+            span.textContent = `${p.name}${p.waitingCount > 0 ? ` (${p.waitingCount})` : ''}`;
             waitingListEl.appendChild(span);
         });
     } else {
         waitingListContainer.classList.add('hidden');
     }
+}
+
+// --- Timer Logic ---
+
+function updateTimerDisplay() {
+    const minutes = Math.floor(timerTimeLeft / 60);
+    const seconds = timerTimeLeft % 60;
+
+    elTimerMinutes.textContent = minutes.toString().padStart(2, '0');
+    elTimerSeconds.textContent = seconds.toString().padStart(2, '0');
+}
+
+function toggleTimer() {
+    if (isTimerRunning) {
+        // Pause
+        clearInterval(timerInterval);
+        isTimerRunning = false;
+        btnTimerToggle.textContent = 'スタート';
+        btnTimerToggle.classList.remove('btn-danger');
+        btnTimerToggle.classList.add('btn-secondary');
+    } else {
+        // Start
+        if (timerTimeLeft <= 0) {
+            resetTimer();
+        }
+
+        isTimerRunning = true;
+        btnTimerToggle.textContent = '一時停止';
+        btnTimerToggle.classList.remove('btn-secondary');
+        btnTimerToggle.classList.add('btn-danger');
+
+        timerInterval = setInterval(() => {
+            timerTimeLeft--;
+            updateTimerDisplay();
+
+            if (timerTimeLeft <= 0) {
+                clearInterval(timerInterval);
+                isTimerRunning = false;
+                btnTimerToggle.textContent = 'スタート';
+                btnTimerToggle.classList.remove('btn-danger');
+                btnTimerToggle.classList.add('btn-secondary');
+                playTimeUpVoice();
+            }
+        }, 1000);
+    }
+}
+
+function playTimeUpVoice() {
+    if (!('speechSynthesis' in window)) {
+        alert('ラストサーブ');
+        return;
+    }
+
+    const utter = new SpeechSynthesisUtterance('ラストサーブ。ラストサーブです。');
+    utter.lang = 'ja-JP';
+    utter.volume = 1.0; // Max volume
+    utter.rate = 0.9;   // Slightly slower
+    utter.pitch = 1.2;  // Slightly higher pitch
+
+    // Try to find a Japanese female voice
+    const voices = window.speechSynthesis.getVoices();
+    const jpVoice = voices.find(v => v.lang === 'ja-JP' && v.name.includes('Google') && v.name.includes('Female')) ||
+        voices.find(v => v.lang === 'ja-JP');
+
+    if (jpVoice) {
+        utter.voice = jpVoice;
+    }
+
+    window.speechSynthesis.speak(utter);
+}
+
+function resetTimer() {
+    clearInterval(timerInterval);
+    isTimerRunning = false;
+
+    const duration = parseInt(inputTimerDuration.value) || 15;
+    timerTimeLeft = duration * 60;
+
+    updateTimerDisplay();
+
+    btnTimerToggle.textContent = 'スタート';
+    btnTimerToggle.classList.remove('btn-danger');
+    btnTimerToggle.classList.add('btn-secondary');
 }
 
 // --- Event Listeners ---
@@ -459,6 +569,13 @@ function setupEventListeners() {
 
     // Session: Shuffle
     btnShuffle.addEventListener('click', shuffleMatches);
+
+    // Session: Timer
+    btnTimerToggle.addEventListener('click', toggleTimer);
+    btnTimerReset.addEventListener('click', resetTimer);
+    inputTimerDuration.addEventListener('change', () => {
+        if (!isTimerRunning) resetTimer();
+    });
 
     // Close Modals on Outside Click
     window.addEventListener('click', (e) => {

@@ -92,6 +92,21 @@
                             <button id="btn-shuffle" class="btn btn-primary">組み合わせをシャッフル</button>
                         </div>
 
+                        <!-- Timer Section -->
+                        <div class="timer-container">
+                            <div class="timer-display">
+                                <span id="timer-minutes">15</span>:<span id="timer-seconds">00</span>
+                            </div>
+                            <div class="timer-controls">
+                                <button id="btn-timer-toggle" class="btn btn-secondary">スタート</button>
+                                <button id="btn-timer-reset" class="btn btn-text">リセット</button>
+                                <div class="timer-settings">
+                                    <label>時間設定:</label>
+                                    <input type="number" id="timer-duration" value="15" min="1" max="60" style="width: 60px;">分
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="session-stats-bar">
                             <span id="participating-count">参加: 0名</span>
                             <span id="waiting-count">待機: 0名</span>
