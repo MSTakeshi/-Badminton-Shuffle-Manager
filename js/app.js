@@ -4,6 +4,7 @@
 
 const store = new Store();
 let currentClubId = null;
+let clubIdToDelete = null;
 
 // DOM Elements
 const app = document.getElementById('app');
@@ -14,12 +15,16 @@ const clubListEl = document.getElementById('club-list');
 // Modals
 const modalAddClub = document.getElementById('modal-add-club');
 const modalAddPlayer = document.getElementById('modal-add-player');
+const modalDeleteClub = document.getElementById('modal-delete-club');
 
 // Buttons - Home
 const btnAddClubCard = document.getElementById('btn-add-club');
 const btnCancelAddClub = document.getElementById('btn-cancel-add-club');
 const btnSaveClub = document.getElementById('btn-save-club');
 const inputNewClubName = document.getElementById('new-club-name');
+const btnCancelDeleteClub = document.getElementById('btn-cancel-delete-club');
+const btnConfirmDeleteClub = document.getElementById('btn-confirm-delete-club');
+const elDeleteClubMessage = document.getElementById('delete-club-message');
 
 // Buttons - Detail
 const btnBackHome = document.getElementById('btn-back-home');
@@ -47,6 +52,7 @@ const elTimerMinutes = document.getElementById('timer-minutes');
 const elTimerSeconds = document.getElementById('timer-seconds');
 const btnTimerToggle = document.getElementById('btn-timer-toggle');
 const btnTimerReset = document.getElementById('btn-timer-reset');
+const btnTimerTest = document.getElementById('btn-timer-test');
 const inputTimerDuration = document.getElementById('timer-duration');
 
 // Timer State
@@ -96,11 +102,12 @@ function createClubCard(club) {
         : '未プレイ';
 
     div.innerHTML = `
-        <div>
+        <div class="club-card-header">
             <h3>${escapeHtml(club.name)}</h3>
-            <div class="club-info">
-                登録メンバー: ${club.players.length}名
-            </div>
+            <button class="btn-icon delete-club-btn" title="クラブを削除">🗑️</button>
+        </div>
+        <div class="club-info">
+            登録メンバー: ${club.players.length}名
         </div>
         <div class="club-stats">
             <span>最終プレイ: ${lastPlayed}</span>
@@ -108,8 +115,20 @@ function createClubCard(club) {
         </div>
     `;
 
-    div.addEventListener('click', () => {
+    // Card click (Open Detail)
+    div.addEventListener('click', (e) => {
+        // Ignore if delete button was clicked
+        if (e.target.closest('.delete-club-btn')) return;
         openClubDetail(club.id);
+    });
+
+    // Delete button click
+    const deleteBtn = div.querySelector('.delete-club-btn');
+    deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent card click
+        clubIdToDelete = club.id;
+        elDeleteClubMessage.textContent = `「${club.name}」を削除してもよろしいですか？\nこの操作は取り消せません。`;
+        modalDeleteClub.classList.remove('hidden');
     });
 
     return div;
@@ -468,6 +487,9 @@ function toggleTimer() {
             resetTimer();
         }
 
+        // Unlock audio for mobile
+        unlockAudio();
+
         isTimerRunning = true;
         btnTimerToggle.textContent = '一時停止';
         btnTimerToggle.classList.remove('btn-secondary');
@@ -513,6 +535,15 @@ function playTimeUpVoice() {
     window.speechSynthesis.speak(utter);
 }
 
+function unlockAudio() {
+    if (!('speechSynthesis' in window)) return;
+
+    // Play a silent short utterance to wake up the engine
+    const utter = new SpeechSynthesisUtterance('');
+    utter.volume = 0;
+    window.speechSynthesis.speak(utter);
+}
+
 function resetTimer() {
     clearInterval(timerInterval);
     isTimerRunning = false;
@@ -540,6 +571,20 @@ function setupEventListeners() {
     btnSaveClub.addEventListener('click', saveNewClub);
     inputNewClubName.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') saveNewClub();
+    });
+
+    // Home: Delete Club Modal
+    btnCancelDeleteClub.addEventListener('click', () => {
+        modalDeleteClub.classList.add('hidden');
+        clubIdToDelete = null;
+    });
+    btnConfirmDeleteClub.addEventListener('click', () => {
+        if (clubIdToDelete) {
+            store.deleteClub(clubIdToDelete);
+            renderClubList();
+            modalDeleteClub.classList.add('hidden');
+            clubIdToDelete = null;
+        }
     });
 
     // Detail: Navigation
@@ -573,6 +618,7 @@ function setupEventListeners() {
     // Session: Timer
     btnTimerToggle.addEventListener('click', toggleTimer);
     btnTimerReset.addEventListener('click', resetTimer);
+    btnTimerTest.addEventListener('click', playTimeUpVoice);
     inputTimerDuration.addEventListener('change', () => {
         if (!isTimerRunning) resetTimer();
     });
@@ -581,6 +627,7 @@ function setupEventListeners() {
     window.addEventListener('click', (e) => {
         if (e.target === modalAddClub) modalAddClub.classList.add('hidden');
         if (e.target === modalAddPlayer) modalAddPlayer.classList.add('hidden');
+        if (e.target === modalDeleteClub) modalDeleteClub.classList.add('hidden');
     });
 }
 

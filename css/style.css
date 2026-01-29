@@ -568,3 +568,38 @@ body {
     border-radius: var(--radius-md);
     text-align: center;
 }
+
+/* Club Card Updates */
+.club-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+.club-card-header h3 {
+    margin-bottom: 0;
+    flex: 1;
+    padding-right: 0.5rem;
+}
+
+.delete-club-btn {
+    opacity: 0.3;
+    transition: opacity 0.2s, color 0.2s;
+    padding: 0.25rem;
+    margin-top: -0.25rem;
+    margin-right: -0.25rem;
+    position: relative;
+    z-index: 10;
+    cursor: pointer;
+}
+
+.club-card:hover .delete-club-btn {
+    opacity: 1;
+}
+
+.delete-club-btn:hover {
+    color: var(--danger-color);
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: var(--radius-md);
+}
