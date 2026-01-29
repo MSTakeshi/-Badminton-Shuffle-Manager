@@ -520,12 +520,15 @@ function playTimeUpVoice() {
     const utter = new SpeechSynthesisUtterance('ラストサーブ。ラストサーブです。');
     utter.lang = 'ja-JP';
     utter.volume = 1.0; // Max volume
-    utter.rate = 0.9;   // Slightly slower
-    utter.pitch = 1.2;  // Slightly higher pitch
+    utter.rate = 1.1;   // Slightly faster
+    utter.pitch = 1.5;  // Higher pitch for "cute" effect
 
     // Try to find a Japanese female voice
+    // Priority: iOS "Kyoko" -> Google Female -> Any Japanese
     const voices = window.speechSynthesis.getVoices();
-    const jpVoice = voices.find(v => v.lang === 'ja-JP' && v.name.includes('Google') && v.name.includes('Female')) ||
+    const jpVoice = voices.find(v => v.name === 'Kyoko') ||
+        voices.find(v => v.name === 'O-ren') ||
+        voices.find(v => v.lang === 'ja-JP' && v.name.includes('Google') && v.name.includes('Female')) ||
         voices.find(v => v.lang === 'ja-JP');
 
     if (jpVoice) {
