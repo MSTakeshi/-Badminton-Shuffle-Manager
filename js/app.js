@@ -16,6 +16,7 @@ const clubListEl = document.getElementById('club-list');
 const modalAddClub = document.getElementById('modal-add-club');
 const modalAddPlayer = document.getElementById('modal-add-player');
 const modalDeleteClub = document.getElementById('modal-delete-club');
+const modalResetBreaks = document.getElementById('modal-reset-breaks');
 
 // Buttons - Home
 const btnAddClubCard = document.getElementById('btn-add-club');
@@ -34,13 +35,17 @@ const btnCancelAddPlayer = document.getElementById('btn-cancel-add-player');
 const btnSavePlayer = document.getElementById('btn-save-player');
 const inputNewPlayerName = document.getElementById('new-player-name');
 const inputNewPlayerLevel = document.getElementById('new-player-level');
+
 const inputPlayerSearch = document.getElementById('player-search');
+const btnCancelResetBreaks = document.getElementById('btn-cancel-reset-breaks');
+const btnConfirmResetBreaks = document.getElementById('btn-confirm-reset-breaks');
 
 // Session Elements
 const inputSessionDate = document.getElementById('session-date');
 const inputSessionCourts = document.getElementById('session-courts');
 const selectSessionMode = document.getElementById('session-mode');
 const btnShuffle = document.getElementById('btn-shuffle');
+const btnResetBreaks = document.getElementById('btn-reset-breaks');
 const courtsContainer = document.getElementById('courts-container');
 const waitingListContainer = document.getElementById('waiting-list-container');
 const waitingListEl = document.getElementById('waiting-list');
@@ -369,6 +374,44 @@ function shuffleMatches() {
     elWaitingCount.textContent = `Waiting: ${waiting.length}`;
 }
 
+function openResetBreaksModal() {
+    modalResetBreaks.classList.remove('hidden');
+}
+
+function resetBreakCounts() {
+    const club = store.getClub(currentClubId);
+    if (!club) return;
+
+    club.players.forEach(p => {
+        p.waitingCount = 0;
+    });
+
+    store.updateClub(club);
+
+    // Update Player List (shows the counts)
+    renderPlayerList();
+
+    // Update Waiting List visually (remove counts)
+    const waitingSpans = waitingListEl.querySelectorAll('.waiting-player');
+    waitingSpans.forEach(span => {
+        // Remove " (N)" from text
+        span.textContent = span.textContent.replace(/\s\(\d+\)$/, '');
+    });
+
+    // Update Court Views visually (remove counts)
+    const teamNames = courtsContainer.querySelectorAll('.team-name');
+    teamNames.forEach(div => {
+        div.textContent = div.textContent.replace(/\s\(\d+\)$/, '');
+    });
+
+    modalResetBreaks.classList.add('hidden');
+
+    // Use setTimeout to allow UI to update before alert
+    setTimeout(() => {
+        alert('休憩回数をリセットしました。');
+    }, 50);
+}
+
 /**
  * Optimizes the pairing of 4 players to minimize level difference between teams.
  * @param {Array} players - Array of 4 Player objects
@@ -617,6 +660,11 @@ function setupEventListeners() {
 
     // Session: Shuffle
     btnShuffle.addEventListener('click', shuffleMatches);
+    btnResetBreaks.addEventListener('click', openResetBreaksModal);
+
+    // Reset Breaks Modal
+    btnCancelResetBreaks.addEventListener('click', () => modalResetBreaks.classList.add('hidden'));
+    btnConfirmResetBreaks.addEventListener('click', resetBreakCounts);
 
     // Session: Timer
     btnTimerToggle.addEventListener('click', toggleTimer);
@@ -631,6 +679,7 @@ function setupEventListeners() {
         if (e.target === modalAddClub) modalAddClub.classList.add('hidden');
         if (e.target === modalAddPlayer) modalAddPlayer.classList.add('hidden');
         if (e.target === modalDeleteClub) modalDeleteClub.classList.add('hidden');
+        if (e.target === modalResetBreaks) modalResetBreaks.classList.add('hidden');
     });
 }
 

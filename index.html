@@ -90,6 +90,8 @@
                                 </select>
                             </div>
                             <button id="btn-shuffle" class="btn btn-primary">組み合わせをシャッフル</button>
+                            <button id="btn-reset-breaks" type="button" class="btn btn-secondary"
+                                style="margin-left: 0.5rem;">休憩回数をリセット</button>
                         </div>
 
                         <!-- Timer Section -->
@@ -171,6 +173,17 @@
                     <button id="btn-cancel-delete-club" class="btn btn-secondary">キャンセル</button>
                     <button id="btn-confirm-delete-club" class="btn btn-primary"
                         style="background-color: var(--danger-color);">削除</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-reset-breaks" class="modal hidden">
+            <div class="modal-content">
+                <h2>休憩回数をリセット</h2>
+                <p style="margin-bottom: 1.5rem;">全員の休憩回数（待機回数）をリセットしてもよろしいですか？</p>
+                <div class="modal-actions">
+                    <button id="btn-cancel-reset-breaks" class="btn btn-secondary">キャンセル</button>
+                    <button id="btn-confirm-reset-breaks" class="btn btn-primary">リセット</button>
                 </div>
             </div>
         </div>
